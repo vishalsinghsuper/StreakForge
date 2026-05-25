@@ -42,3 +42,9 @@ DATABASE_URL="postgresql://..."
 
 When that value is present, StreakForge uses Supabase/Postgres instead of the
 local SQLite file.
+
+For persistent login cookies, optionally add a long random secret:
+
+```text
+AUTH_COOKIE_SECRET="use-a-long-random-string-here"
+```
