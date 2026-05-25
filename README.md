@@ -6,6 +6,7 @@ notes, streaks, and personal execution.
 ## Features
 
 - Login and sign up with local password hashing
+- Persistent per-user data using SQLite
 - Daily Forge habit tracker
 - Event Board with deadlines and backlog events
 - Field Notes
@@ -20,5 +21,5 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The app stores local account data in `streakforge_users.json`, which is ignored
-by Git because it can contain private user information.
+The app stores account and user productivity data in `streakforge.db`, which is
+ignored by Git because it can contain private user information.

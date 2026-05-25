@@ -5,6 +5,8 @@ __pycache__/
 *.out.log
 .streamlit/secrets.toml
 streakforge_users.json
+streakforge.db
+streakforge.db-*
 .env
 .venv/
 venv/

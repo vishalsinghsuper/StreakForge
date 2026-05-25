@@ -5,6 +5,7 @@ import html
 import json
 import re
 import secrets
+import sqlite3
 from pathlib import Path
 
 import streamlit as st
@@ -33,6 +34,7 @@ PILLARS = {
 }
 
 USER_STORE = Path(__file__).with_name("streakforge_users.json")
+DB_PATH = Path(__file__).with_name("streakforge.db")
 APP_STATE_KEYS = [
     "habits",
     "active_pillar",
@@ -63,19 +65,200 @@ def init_state(name, default_val):
         st.session_state[name] = default_val
 
 
-def load_users():
+def get_db():
+    return sqlite3.connect(DB_PATH)
+
+
+def init_database():
+    with get_db() as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                username TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_state (
+                username TEXT PRIMARY KEY,
+                data_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
+            )
+            """
+        )
+
+    migrate_json_users_to_db()
+
+
+def migrate_json_users_to_db():
     if not USER_STORE.exists():
-        return {}
+        return
+
     try:
         with USER_STORE.open("r", encoding="utf-8") as file:
-            return json.load(file)
+            old_users = json.load(file)
     except (json.JSONDecodeError, OSError):
-        return {}
+        return
+
+    with get_db() as conn:
+        for username, user in old_users.items():
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO users (username, display_name, email, password, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    username,
+                    user.get("display_name", username),
+                    user.get("email", ""),
+                    user.get("password", ""),
+                    user.get("created_at", datetime.datetime.now().isoformat(timespec="seconds")),
+                ),
+            )
+
+
+def load_users():
+    init_database()
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT username, display_name, email, password, created_at FROM users ORDER BY username"
+        ).fetchall()
+
+    return {
+        username: {
+            "display_name": display_name,
+            "email": email,
+            "password": password,
+            "created_at": created_at,
+        }
+        for username, display_name, email, password, created_at in rows
+    }
 
 
 def save_users(users):
-    with USER_STORE.open("w", encoding="utf-8") as file:
-        json.dump(users, file, indent=2)
+    init_database()
+    with get_db() as conn:
+        for username, user in users.items():
+            conn.execute(
+                """
+                INSERT INTO users (username, display_name, email, password, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(username) DO UPDATE SET
+                    display_name = excluded.display_name,
+                    email = excluded.email,
+                    password = excluded.password,
+                    created_at = excluded.created_at
+                """,
+                (
+                    username,
+                    user["display_name"],
+                    user["email"],
+                    user["password"],
+                    user["created_at"],
+                ),
+            )
+
+
+def default_user_state():
+    return {
+        "habits": [],
+        "active_pillar": "General",
+        "stats_master": {"current": 0, "prev": 0, "best": 0},
+        "stats_iron": {"current": 0, "prev": 0, "best": 0},
+        "stats_mind": {"current": 0, "prev": 0, "best": 0},
+        "stats_general": {"current": 0, "prev": 0, "best": 0},
+        "events": [],
+        "history": [],
+        "notes_list": [],
+    }
+
+
+def serialize_event(event):
+    serialized = dict(event)
+    for key in ("deadline", "done_date"):
+        if isinstance(serialized.get(key), (datetime.date, datetime.datetime)):
+            serialized[key] = serialized[key].isoformat()
+    return serialized
+
+
+def deserialize_event(event):
+    deserialized = dict(event)
+    for key in ("deadline", "done_date"):
+        value = deserialized.get(key)
+        if value:
+            deserialized[key] = datetime.date.fromisoformat(value)
+        else:
+            deserialized[key] = None
+    return deserialized
+
+
+def collect_user_state():
+    return {
+        "habits": st.session_state.habits,
+        "active_pillar": st.session_state.active_pillar,
+        "stats_master": st.session_state.stats_master,
+        "stats_iron": st.session_state.stats_iron,
+        "stats_mind": st.session_state.stats_mind,
+        "stats_general": st.session_state.stats_general,
+        "events": [serialize_event(event) for event in st.session_state.events],
+        "history": [serialize_event(event) for event in st.session_state.history],
+        "notes_list": st.session_state.notes_list,
+    }
+
+
+def save_user_state(username, data):
+    init_database()
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO user_state (username, data_json, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(username) DO UPDATE SET
+                data_json = excluded.data_json,
+                updated_at = excluded.updated_at
+            """,
+            (
+                username,
+                json.dumps(data),
+                datetime.datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+
+
+def save_current_user_state():
+    if st.session_state.get("authenticated") and st.session_state.get("current_user"):
+        save_user_state(st.session_state.current_user, collect_user_state())
+
+
+def load_user_state(username):
+    init_database()
+    with get_db() as conn:
+        row = conn.execute("SELECT data_json FROM user_state WHERE username = ?", (username,)).fetchone()
+
+    if not row:
+        return default_user_state()
+
+    try:
+        data = json.loads(row[0])
+    except json.JSONDecodeError:
+        return default_user_state()
+
+    state = default_user_state()
+    state.update(data)
+    state["events"] = [deserialize_event(event) for event in state["events"]]
+    state["history"] = [deserialize_event(event) for event in state["history"]]
+    return state
+
+
+def apply_user_state(data):
+    for key, value in data.items():
+        st.session_state[key] = value
 
 
 def hash_password(password):
@@ -108,6 +291,7 @@ def login_user(username, users):
     st.session_state.current_user = username
     st.session_state.current_display_name = users[username]["display_name"]
     reset_app_session()
+    apply_user_state(load_user_state(username))
     st.rerun()
 
 
@@ -726,6 +910,7 @@ def process_midnight():
             active_events.append(evt)
 
     st.session_state.events = active_events
+    save_current_user_state()
     st.toast("Midnight passed. The Forge resets.", icon="🌙")
 
 
@@ -737,6 +922,7 @@ def reset_forge():
     st.session_state.stats_iron = {"current": 0, "prev": 0, "best": 0}
     st.session_state.stats_mind = {"current": 0, "prev": 0, "best": 0}
     st.session_state.stats_general = {"current": 0, "prev": 0, "best": 0}
+    save_current_user_state()
 
 
 def render_auth_page():
@@ -936,6 +1122,7 @@ def render_forge():
     )
     if selected != st.session_state.active_pillar:
         st.session_state.active_pillar = selected
+        save_current_user_state()
         st.rerun()
 
     with st.form("habit_form", clear_on_submit=True):
@@ -961,6 +1148,7 @@ def render_forge():
                         "done": False,
                     }
                 )
+                save_current_user_state()
                 st.rerun()
 
     st.write("")
@@ -1007,10 +1195,12 @@ def render_forge():
                     for key in list(st.session_state.keys()):
                         if key.startswith("hbt_") or key.startswith("edit_hbt_"):
                             del st.session_state[key]
+                    save_current_user_state()
                     st.rerun()
 
         if checked != habit["done"]:
             st.session_state.habits[i]["done"] = checked
+            save_current_user_state()
             st.rerun()
 
         if st.session_state.get(f"edit_hbt_{i}", False):
@@ -1032,6 +1222,7 @@ def render_forge():
                     elif edit_text.strip():
                         st.session_state.habits[i]["text"] = edit_text.strip()
                         st.session_state[f"edit_hbt_{i}"] = False
+                        save_current_user_state()
                         st.rerun()
 
 
@@ -1062,6 +1253,7 @@ def render_events():
                         }
                     )
                     st.toast("Event posted.", icon="📌")
+                    save_current_user_state()
                     st.rerun()
 
     if not st.session_state.events:
@@ -1094,11 +1286,13 @@ def render_events():
                     if f"evt_{evt['id']}" in st.session_state:
                         del st.session_state[f"evt_{evt['id']}"]
                     clear_event_edit_state()
+                    save_current_user_state()
                     st.rerun()
 
         if is_checked != evt["done"]:
             st.session_state.events[i]["done"] = is_checked
             st.session_state.events[i]["done_date"] = datetime.date.today() if is_checked else None
+            save_current_user_state()
             st.rerun()
 
         if st.session_state.get(f"edit_evt_{evt['id']}", False):
@@ -1138,6 +1332,7 @@ def render_events():
                         st.session_state.events[i]["text"] = edit_title.strip()
                         st.session_state.events[i]["deadline"] = edit_date if "Timelined" in edit_type else None
                         st.session_state[f"edit_evt_{evt['id']}"] = False
+                        save_current_user_state()
                         st.rerun()
 
 
@@ -1156,6 +1351,7 @@ def render_notes():
                 }
             )
             st.toast("Note saved successfully!", icon="✅")
+            save_current_user_state()
             st.rerun()
 
     st.divider()
@@ -1178,6 +1374,7 @@ def render_notes():
             with col2:
                 if st.button("Delete", key=f"del_{real_index}", use_container_width=True):
                     st.session_state.notes_list.pop(real_index)
+                    save_current_user_state()
                     st.rerun()
 
             with st.expander("✏️ Edit Note"):
@@ -1186,6 +1383,7 @@ def render_notes():
                 if st.button("💾 Update", key=f"upd_{real_index}", use_container_width=True):
                     st.session_state.notes_list[real_index]["title"] = edit_t
                     st.session_state.notes_list[real_index]["content"] = edit_c
+                    save_current_user_state()
                     st.rerun()
 
 
