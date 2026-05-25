@@ -3,12 +3,18 @@ import hashlib
 import hmac
 import html
 import json
+import os
 import re
 import secrets
 import sqlite3
 from pathlib import Path
 
 import streamlit as st
+
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None
 
 
 about_text = """
@@ -65,33 +71,85 @@ def init_state(name, default_val):
         st.session_state[name] = default_val
 
 
+def get_config_value(name):
+    if os.getenv(name):
+        return os.getenv(name)
+    try:
+        return st.secrets.get(name)
+    except Exception:
+        return None
+
+
+def get_database_url():
+    return get_config_value("SUPABASE_DB_URL") or get_config_value("DATABASE_URL")
+
+
+def using_postgres():
+    return bool(get_database_url())
+
+
+def db_placeholder():
+    return "%s" if using_postgres() else "?"
+
+
 def get_db():
+    database_url = get_database_url()
+    if database_url:
+        if psycopg2 is None:
+            raise RuntimeError("Install psycopg2-binary to use Supabase/Postgres.")
+        return psycopg2.connect(database_url, sslmode="require")
     return sqlite3.connect(DB_PATH)
 
 
-def init_database():
+def db_execute(sql, params=()):
     with get_db() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                username TEXT PRIMARY KEY,
-                display_name TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                password TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-            """
+        if using_postgres():
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+        else:
+            conn.execute(sql, params)
+
+
+def db_fetchall(sql, params=()):
+    with get_db() as conn:
+        if using_postgres():
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                return cur.fetchall()
+        return conn.execute(sql, params).fetchall()
+
+
+def db_fetchone(sql, params=()):
+    with get_db() as conn:
+        if using_postgres():
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                return cur.fetchone()
+        return conn.execute(sql, params).fetchone()
+
+
+def init_database():
+    db_execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            display_name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            created_at TEXT NOT NULL
         )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS user_state (
-                username TEXT PRIMARY KEY,
-                data_json TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
-            )
-            """
+        """
+    )
+    db_execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_state (
+            username TEXT PRIMARY KEY,
+            data_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
         )
+        """
+    )
 
     migrate_json_users_to_db()
 
@@ -106,29 +164,30 @@ def migrate_json_users_to_db():
     except (json.JSONDecodeError, OSError):
         return
 
-    with get_db() as conn:
-        for username, user in old_users.items():
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO users (username, display_name, email, password, created_at)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (
-                    username,
-                    user.get("display_name", username),
-                    user.get("email", ""),
-                    user.get("password", ""),
-                    user.get("created_at", datetime.datetime.now().isoformat(timespec="seconds")),
-                ),
-            )
+    placeholder = db_placeholder()
+    sql = (
+        """
+        INSERT INTO users (username, display_name, email, password, created_at)
+        VALUES ({0}, {0}, {0}, {0}, {0})
+        ON CONFLICT(username) DO NOTHING
+        """
+    ).format(placeholder)
+    for username, user in old_users.items():
+        db_execute(
+            sql,
+            (
+                username,
+                user.get("display_name", username),
+                user.get("email", ""),
+                user.get("password", ""),
+                user.get("created_at", datetime.datetime.now().isoformat(timespec="seconds")),
+            ),
+        )
 
 
 def load_users():
     init_database()
-    with get_db() as conn:
-        rows = conn.execute(
-            "SELECT username, display_name, email, password, created_at FROM users ORDER BY username"
-        ).fetchall()
+    rows = db_fetchall("SELECT username, display_name, email, password, created_at FROM users ORDER BY username")
 
     return {
         username: {
@@ -143,26 +202,29 @@ def load_users():
 
 def save_users(users):
     init_database()
-    with get_db() as conn:
-        for username, user in users.items():
-            conn.execute(
-                """
-                INSERT INTO users (username, display_name, email, password, created_at)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(username) DO UPDATE SET
-                    display_name = excluded.display_name,
-                    email = excluded.email,
-                    password = excluded.password,
-                    created_at = excluded.created_at
-                """,
-                (
-                    username,
-                    user["display_name"],
-                    user["email"],
-                    user["password"],
-                    user["created_at"],
-                ),
-            )
+    placeholder = db_placeholder()
+    sql = (
+        """
+        INSERT INTO users (username, display_name, email, password, created_at)
+        VALUES ({0}, {0}, {0}, {0}, {0})
+        ON CONFLICT(username) DO UPDATE SET
+            display_name = excluded.display_name,
+            email = excluded.email,
+            password = excluded.password,
+            created_at = excluded.created_at
+        """
+    ).format(placeholder)
+    for username, user in users.items():
+        db_execute(
+            sql,
+            (
+                username,
+                user["display_name"],
+                user["email"],
+                user["password"],
+                user["created_at"],
+            ),
+        )
 
 
 def default_user_state():
@@ -214,21 +276,24 @@ def collect_user_state():
 
 def save_user_state(username, data):
     init_database()
-    with get_db() as conn:
-        conn.execute(
-            """
-            INSERT INTO user_state (username, data_json, updated_at)
-            VALUES (?, ?, ?)
-            ON CONFLICT(username) DO UPDATE SET
-                data_json = excluded.data_json,
-                updated_at = excluded.updated_at
-            """,
-            (
-                username,
-                json.dumps(data),
-                datetime.datetime.now().isoformat(timespec="seconds"),
-            ),
-        )
+    placeholder = db_placeholder()
+    sql = (
+        """
+        INSERT INTO user_state (username, data_json, updated_at)
+        VALUES ({0}, {0}, {0})
+        ON CONFLICT(username) DO UPDATE SET
+            data_json = excluded.data_json,
+            updated_at = excluded.updated_at
+        """
+    ).format(placeholder)
+    db_execute(
+        sql,
+        (
+            username,
+            json.dumps(data),
+            datetime.datetime.now().isoformat(timespec="seconds"),
+        ),
+    )
 
 
 def save_current_user_state():
@@ -238,8 +303,7 @@ def save_current_user_state():
 
 def load_user_state(username):
     init_database()
-    with get_db() as conn:
-        row = conn.execute("SELECT data_json FROM user_state WHERE username = ?", (username,)).fetchone()
+    row = db_fetchone(f"SELECT data_json FROM user_state WHERE username = {db_placeholder()}", (username,))
 
     if not row:
         return default_user_state()

@@ -21,5 +21,24 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The app stores account and user productivity data in `streakforge.db`, which is
-ignored by Git because it can contain private user information.
+By default, the app stores account and user productivity data in local SQLite at
+`streakforge.db`, which is ignored by Git because it can contain private user
+information.
+
+## Supabase / Postgres
+
+For cross-device sync, set one of these secrets/environment variables to your
+Supabase Postgres connection string:
+
+```text
+SUPABASE_DB_URL="postgresql://..."
+```
+
+or:
+
+```text
+DATABASE_URL="postgresql://..."
+```
+
+When that value is present, StreakForge uses Supabase/Postgres instead of the
+local SQLite file.
