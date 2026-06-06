@@ -1,0 +1,15 @@
+[Unit]
+Description=StreakForge Express Node.js Backend API
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/streakforge/backend
+EnvironmentFile=/etc/streakforge.env
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

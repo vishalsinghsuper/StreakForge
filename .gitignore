@@ -1,4 +1,7 @@
-__pycache__/
+node_modules
+.env
+dist
+coverage__pycache__/
 *.py[cod]
 *.log
 *.err.log
@@ -7,6 +10,8 @@ __pycache__/
 streakforge_users.json
 streakforge.db
 streakforge.db-*
+streakforge_api.db
+streakforge_api.db-*
 .env
 .venv/
 venv/
