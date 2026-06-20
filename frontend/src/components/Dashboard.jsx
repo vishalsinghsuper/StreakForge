@@ -15,7 +15,8 @@ import Notes from "./Notes";
 import ArchiveView from "./Archive";
 import OverlayWorkspace from "./OverlayWorkspace";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
+
 
 // Synthesizer beep utility for habit completion
 function playSuccessSound() {

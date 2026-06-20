@@ -23,7 +23,8 @@ import GlassCard from "./ui/GlassCard";
 import GlowButton from "./ui/GlowButton";
 import { api } from "../api";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+import { API_BASE } from "../config";
+
 
 // Helper to format file sizes
 function formatFileSize(bytes) {
