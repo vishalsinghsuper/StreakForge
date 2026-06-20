@@ -9,12 +9,28 @@ import habitRoutes from "./routes/habitRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import noteRoutes from "./routes/noteRoutes.js";
 import stateRoutes from "./routes/stateRoutes.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure uploads folder exists
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
 // --------------- Security Middleware ---------------
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 app.use(
   cors({
     origin: [
@@ -39,6 +55,9 @@ app.use("/api/auth", limiter);
 
 // Body parsing
 app.use(express.json({ limit: "1mb" }));
+
+// Static files serving
+app.use("/uploads", express.static(uploadsDir));
 
 // --------------- Routes ---------------
 app.use("/api/auth", authRoutes);

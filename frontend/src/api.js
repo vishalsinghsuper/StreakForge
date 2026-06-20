@@ -47,6 +47,44 @@ export const api = {
   logout: () => request("/api/auth/logout", { method: "POST" }),
   resendVerification: (payload) => request("/api/auth/resend-verification", { method: "POST", body: JSON.stringify(payload) }),
   verifyEmail: (token) => request(`/api/auth/verify-email/${token}`),
+  updateProfile: (payload) => request("/api/auth/profile", { method: "PUT", body: JSON.stringify(payload) }),
+  changePassword: (payload) => request("/api/auth/change-password", { method: "PUT", body: JSON.stringify(payload) }),
+  updateTheme: (themePreference) => request("/api/auth/theme", { method: "PUT", body: JSON.stringify({ themePreference }) }),
+  exportData: async () => {
+    const token = getToken();
+    const headers = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE}/api/auth/export`, { headers });
+    if (!response.ok) throw new Error("Failed to export data");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "streakforge_data.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  },
+  resetData: () => request("/api/auth/reset-data", { method: "DELETE" }),
+  deleteAccount: () => request("/api/auth/delete-account", { method: "DELETE" }),
+  uploadProfilePicture: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE}/api/auth/profile-picture`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || data.error || "Upload failed");
+    }
+    return data;
+  },
   setToken,
   getToken,
   clearToken,
@@ -68,6 +106,23 @@ export const api = {
   getNotes: () => request("/api/notes"),
   createNote: (payload) => request("/api/notes", { method: "POST", body: JSON.stringify(payload) }),
   deleteNote: (id) => request(`/api/notes/${id}`, { method: "DELETE" }),
+  uploadFile: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE}/api/notes/upload`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || data.error || "Upload failed");
+    }
+    return data;
+  },
 
   // Stats
   getStats: () => request("/api/stats"),

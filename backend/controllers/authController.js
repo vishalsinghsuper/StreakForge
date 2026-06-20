@@ -2,6 +2,9 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../models/User.js";
 import UserState from "../models/UserState.js";
+import Habit from "../models/Habit.js";
+import Note from "../models/Note.js";
+import Event from "../models/Event.js";
 import { sendVerificationEmail } from "../utils/email.js";
 
 /** Helper to create and sign a JWT for a user */
@@ -18,6 +21,10 @@ function publicUser(user) {
     display_name: user.displayName,
     email: user.email,
     isEmailVerified: user.isEmailVerified,
+    profilePicture: user.profilePicture,
+    dateOfBirth: user.dateOfBirth,
+    themePreference: user.themePreference,
+    createdAt: user.createdAt,
   };
 }
 
@@ -164,5 +171,178 @@ export async function verifyEmail(req, res) {
   } catch (err) {
     console.error("Verify email error:", err);
     res.status(500).json({ detail: "Server error." });
+  }
+}
+
+// PUT /api/auth/profile — update user profile details
+export async function updateProfile(req, res) {
+  try {
+    const { displayName, dateOfBirth, profilePicture } = req.body;
+    if (!displayName || !displayName.trim()) {
+      return res.status(400).json({ detail: "Display name cannot be empty." });
+    }
+
+    const user = req.user;
+    user.displayName = displayName.trim();
+    if (dateOfBirth !== undefined) {
+      user.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    }
+    if (profilePicture !== undefined) {
+      user.profilePicture = profilePicture;
+    }
+
+    await user.save();
+    res.json(publicUser(user));
+  } catch (err) {
+    console.error("updateProfile error:", err);
+    res.status(500).json({ detail: "Failed to update profile." });
+  }
+}
+
+// PUT /api/auth/change-password — update user password
+export async function changePassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ detail: "Both current and new passwords are required." });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ detail: "New password must be at least 6 characters." });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+    if (!(await user.comparePassword(currentPassword))) {
+      return res.status(401).json({ detail: "Incorrect current password." });
+    }
+
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: "Password updated successfully." });
+  } catch (err) {
+    console.error("changePassword error:", err);
+    res.status(500).json({ detail: "Failed to change password." });
+  }
+}
+
+// PUT /api/auth/theme — update theme preference
+export async function updateTheme(req, res) {
+  try {
+    const { themePreference } = req.body;
+    if (!["dark", "light"].includes(themePreference)) {
+      return res.status(400).json({ detail: "Invalid theme preference." });
+    }
+
+    const user = req.user;
+    user.themePreference = themePreference;
+    await user.save();
+    res.json(publicUser(user));
+  } catch (err) {
+    console.error("updateTheme error:", err);
+    res.status(500).json({ detail: "Failed to update theme preference." });
+  }
+}
+
+// GET /api/auth/export — export all user data
+export async function exportData(req, res) {
+  try {
+    const userId = req.user._id;
+    const [habits, notes, events, userState] = await Promise.all([
+      Habit.find({ userId }),
+      Note.find({ userId }),
+      Event.find({ userId }),
+      UserState.findOne({ userId }),
+    ]);
+
+    const data = {
+      user: {
+        username: req.user.username,
+        displayName: req.user.displayName,
+        email: req.user.email,
+        createdAt: req.user.createdAt,
+        dateOfBirth: req.user.dateOfBirth,
+      },
+      streaks: userState || {},
+      habits: habits.map((h) => ({
+        text: h.text,
+        pillar: h.pillar,
+        done: h.done,
+        createdAt: h.createdAt,
+      })),
+      notes: notes.map((n) => ({
+        title: n.title,
+        content: n.content,
+        attachments: n.attachments,
+        createdAt: n.createdAt,
+      })),
+      events: events.map((e) => ({
+        text: e.text,
+        deadline: e.deadline,
+        done: e.done,
+        isArchived: e.isArchived,
+        doneDate: e.doneDate,
+        createdAt: e.createdAt,
+      })),
+    };
+
+    res.setHeader("Content-Disposition", "attachment; filename=streakforge_data.json");
+    res.setHeader("Content-Type", "application/json");
+    res.json(data);
+  } catch (err) {
+    console.error("exportData error:", err);
+    res.status(500).json({ detail: "Failed to export data." });
+  }
+}
+
+// DELETE /api/auth/reset-data — delete stats, habits, events, and notes
+export async function resetData(req, res) {
+  try {
+    const userId = req.user._id;
+
+    // Reset streaks
+    await UserState.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          activePillar: "General",
+          statsMaster: { current: 0, prev: 0, best: 0 },
+          statsIron: { current: 0, prev: 0, best: 0 },
+          statsMind: { current: 0, prev: 0, best: 0 },
+          statsGeneral: { current: 0, prev: 0, best: 0 },
+        },
+      },
+      { upsert: true }
+    );
+
+    // Delete notes, habits, and events
+    await Promise.all([
+      Habit.deleteMany({ userId }),
+      Event.deleteMany({ userId }),
+      Note.deleteMany({ userId }),
+    ]);
+
+    res.json({ message: "All Forge data reset successfully." });
+  } catch (err) {
+    console.error("resetData error:", err);
+    res.status(500).json({ detail: "Failed to reset data." });
+  }
+}
+
+// DELETE /api/auth/delete-account — delete full account and all associated data
+export async function deleteAccount(req, res) {
+  try {
+    const userId = req.user._id;
+
+    await Promise.all([
+      Habit.deleteMany({ userId }),
+      Event.deleteMany({ userId }),
+      Note.deleteMany({ userId }),
+      UserState.deleteMany({ userId }),
+      User.findByIdAndDelete(userId),
+    ]);
+
+    res.json({ message: "Account deleted successfully." });
+  } catch (err) {
+    console.error("deleteAccount error:", err);
+    res.status(500).json({ detail: "Failed to delete account." });
   }
 }

@@ -14,19 +14,43 @@ export async function getNotes(req, res) {
 // POST /api/notes — create a new note
 export async function createNote(req, res) {
   try {
-    const { title, content } = req.body;
-    if (!title?.trim() && !content?.trim()) {
-      return res.status(400).json({ detail: "Title or content is required." });
+    const { title, content, images, attachments } = req.body;
+    const hasImages = images && images.length > 0;
+    const hasAttachments = attachments && attachments.length > 0;
+    if (!title?.trim() && !content?.trim() && !hasImages && !hasAttachments) {
+      return res.status(400).json({ detail: "Title, content, or attachment is required." });
     }
     const note = await Note.create({
       userId: req.user._id,
       title: title || "",
       content: content || "",
+      images: images || [],
+      attachments: attachments || [],
     });
     res.status(201).json(note);
   } catch (err) {
     console.error("createNote error:", err);
     res.status(500).json({ detail: "Failed to create note." });
+  }
+}
+
+// POST /api/notes/upload — upload a file (image, pdf, document)
+export async function uploadFile(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ detail: "No file uploaded." });
+    }
+    // Return relative URL and metadata so frontend can load it and display details
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.status(200).json({
+      url: fileUrl,
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimeType: req.file.mimetype,
+    });
+  } catch (err) {
+    console.error("uploadFile error:", err);
+    res.status(500).json({ detail: "Failed to upload file." });
   }
 }
 

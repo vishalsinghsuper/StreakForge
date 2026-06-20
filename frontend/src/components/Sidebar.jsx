@@ -14,11 +14,7 @@ const PILLARS = {
  * Features: glowing brand mark, gradient streak counter, shadow streaks,
  * midnight/reset buttons, and user avatar with glow.
  */
-export default function Sidebar({ user, stats, onLogout, onReset, onMidnight }) {
-  const initials = user.display_name
-    ? user.display_name.charAt(0).toUpperCase()
-    : "?";
-
+export default function Sidebar({ stats, onReset, onMidnight }) {
   return (
     <aside className="sidebar">
       {/* Brand */}
@@ -70,14 +66,6 @@ export default function Sidebar({ user, stats, onLogout, onReset, onMidnight }) 
         </GlowButton>
       </div>
 
-      {/* Profile */}
-      <div className="profile">
-        <div className="avatar-glow">{initials}</div>
-        <span>{user.display_name}</span>
-      </div>
-      <GlowButton variant="ghost" onClick={onLogout} style={{ marginTop: "0.5rem" }}>
-        <LogOut size={16} /> Logout
-      </GlowButton>
     </aside>
   );
 }

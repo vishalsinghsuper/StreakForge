@@ -37,6 +37,18 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    profilePicture: {
+      type: String,
+      default: "",
+    },
+    dateOfBirth: {
+      type: Date,
+    },
+    themePreference: {
+      type: String,
+      default: "dark",
+      enum: ["dark", "light"],
+    },
     emailVerificationToken: String,
     emailVerificationExpires: Date,
   },

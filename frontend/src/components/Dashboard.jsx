@@ -1,17 +1,49 @@
-import React, { useState, useMemo } from "react";
-import { Flame, CalendarDays, BookOpen, Archive } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  Flame,
+  CalendarDays,
+  BookOpen,
+  Archive,
+  Check,
+} from "lucide-react";
 import LampEffect from "./ui/LampEffect";
 import Sidebar from "./Sidebar";
 import Forge from "./Forge";
 import Events from "./Events";
+import AvatarMenu from "./AvatarMenu";
 import Notes from "./Notes";
 import ArchiveView from "./Archive";
+import OverlayWorkspace from "./OverlayWorkspace";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
+// Synthesizer beep utility for habit completion
+function playSuccessSound() {
+  if (localStorage.getItem("sf_completion_sounds") === "false") return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+    gain.gain.setValueAtTime(0.04, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.35);
+  } catch (e) {
+    console.error("Audio failed:", e);
+  }
+}
+
 
 /**
  * Dashboard — Main app shell with sidebar, tabs, and content area.
  * Orchestrates all data operations between components and the API.
  */
-export default function Dashboard({ user, api, onLogout }) {
+export default function Dashboard({ user, api, onUserUpdate, onLogout }) {
   const [habits, setHabits] = useState([]);
   const [events, setEvents] = useState([]);
   const [archivedEvents, setArchivedEvents] = useState([]);
@@ -20,6 +52,18 @@ export default function Dashboard({ user, api, onLogout }) {
   const [tab, setTab] = useState("forge");
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
+
+  // Overlay state: null | "profile" | "settings" | "about"
+  const [activeOverlay, setActiveOverlay] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Initial data load
   React.useEffect(() => {
@@ -69,10 +113,8 @@ export default function Dashboard({ user, api, onLogout }) {
   }
 
   async function updateHabit(id, patch) {
-    // Optimistic update
-    setHabits((prev) =>
-      prev.map((h) => (h._id === id ? { ...h, ...patch } : h))
-    );
+    if (patch.done === true) playSuccessSound();
+    setHabits((prev) => prev.map((h) => (h._id === id ? { ...h, ...patch } : h)));
     try {
       const updated = await api.updateHabit(id, patch);
       setHabits((prev) => prev.map((h) => (h._id === id ? updated : h)));
@@ -83,6 +125,14 @@ export default function Dashboard({ user, api, onLogout }) {
   }
 
   async function deleteHabit(id) {
+    const isStreakProtectionEnabled =
+      localStorage.getItem("sf_streak_protection") !== "false";
+    if (isStreakProtectionEnabled) {
+      const confirmDelete = window.confirm(
+        "Are you sure you want to delete this habit?"
+      );
+      if (!confirmDelete) return;
+    }
     setHabits((prev) => prev.filter((h) => h._id !== id));
     try {
       await api.deleteHabit(id);
@@ -113,9 +163,7 @@ export default function Dashboard({ user, api, onLogout }) {
   }
 
   async function updateEvent(id, patch) {
-    setEvents((prev) =>
-      prev.map((e) => (e._id === id ? { ...e, ...patch } : e))
-    );
+    setEvents((prev) => prev.map((e) => (e._id === id ? { ...e, ...patch } : e)));
     try {
       const updated = await api.updateEvent(id, patch);
       setEvents((prev) => prev.map((e) => (e._id === id ? updated : e)));
@@ -136,9 +184,9 @@ export default function Dashboard({ user, api, onLogout }) {
   }
 
   // --- Note operations ---
-  async function addNote({ title, content }) {
+  async function addNote({ title, content, images, attachments }) {
     try {
-      const note = await api.createNote({ title, content });
+      const note = await api.createNote({ title, content, images, attachments });
       setNotes((prev) => [note, ...prev]);
       setError("");
     } catch (err) {
@@ -161,7 +209,6 @@ export default function Dashboard({ user, api, onLogout }) {
     try {
       const updatedStats = await api.midnight();
       setStats(updatedStats);
-      // Refresh habits and events after midnight
       const [h, e, ae] = await Promise.all([
         api.getHabits(),
         api.getEvents(),
@@ -205,9 +252,7 @@ export default function Dashboard({ user, api, onLogout }) {
       <LampEffect />
       <div className="app-shell">
         <Sidebar
-          user={user}
           stats={stats}
-          onLogout={onLogout}
           onReset={handleReset}
           onMidnight={handleMidnight}
         />
@@ -218,9 +263,19 @@ export default function Dashboard({ user, api, onLogout }) {
               <h1>StreakForge</h1>
               <p>Execute the standard.</p>
             </div>
-            <div className="summary">
-              <strong>{completionPercent}%</strong>
-              <span>Daily completion</span>
+            <div className="topbar-right">
+              <div className="summary">
+                <strong>{completionPercent}%</strong>
+                <span>Daily completion</span>
+              </div>
+              {/* Avatar — separated with clear spacing */}
+              <div className="topbar-avatar-container">
+                <AvatarMenu
+                  user={user}
+                  onSelect={(type) => setActiveOverlay(type)}
+                  onLogout={onLogout}
+                />
+              </div>
             </div>
           </header>
 
@@ -290,6 +345,30 @@ export default function Dashboard({ user, api, onLogout }) {
           )}
         </main>
       </div>
+
+      {/* ─── Overlay Workspace (Profile / Settings / About) ─── */}
+      {(activeOverlay === "profile" ||
+        activeOverlay === "settings" ||
+        activeOverlay === "about") && (
+        <OverlayWorkspace
+          type={activeOverlay}
+          user={user}
+          api={api}
+          onUserUpdate={onUserUpdate}
+          onClose={() => setActiveOverlay(null)}
+          setToast={setToast}
+          onLogout={onLogout}
+        />
+      )}
+
+
+      {/* Global Toast Notification */}
+      {toast && (
+        <div className="toast-notification">
+          <Check size={16} />
+          <span>{toast.message}</span>
+        </div>
+      )}
     </>
   );
 }

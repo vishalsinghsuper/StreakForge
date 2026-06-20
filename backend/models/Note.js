@@ -18,6 +18,18 @@ const noteSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    images: {
+      type: [String],
+      default: [],
+    },
+    attachments: [
+      {
+        url: { type: String, required: true },
+        filename: { type: String, required: true },
+        size: { type: Number, required: true },
+        mimeType: { type: String, required: true },
+      }
+    ],
   },
   { timestamps: true }
 );

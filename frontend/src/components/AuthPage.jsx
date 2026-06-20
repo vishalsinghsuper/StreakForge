@@ -9,7 +9,7 @@ import LampEffect from "./ui/LampEffect";
  * Premium Lamp Theme with ambient lighting, glassmorphism panel,
  * and smooth transitions between auth states.
  */
-export default function AuthPage({ onAuthed, api }) {
+export default function AuthPage({ onAuthed, onBack, api }) {
   const [mode, setMode] = useState("login"); // "login" | "signup" | "verify"
   const [form, setForm] = useState({
     username: "",
@@ -87,6 +87,15 @@ export default function AuthPage({ onAuthed, api }) {
       <main className="auth-page">
         {/* Left: Brand Intro */}
         <section className="auth-intro">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="auth-back-btn"
+              aria-label="Back to home"
+            >
+              ← Back to Home
+            </button>
+          )}
           <div className="brand-mark">
             <Flame size={28} color="#fff" />
           </div>

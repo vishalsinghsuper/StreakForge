@@ -5,6 +5,7 @@ import sqlite3
 from typing import Any
 
 try:
+    # pyrefly: ignore [missing-import]
     import oracledb
 except ImportError:
     oracledb = None
