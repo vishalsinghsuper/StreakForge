@@ -3318,50 +3318,261 @@ input[type="checkbox"]:checked::after {
   margin: 0;
 }
 
-/* ── LIGHT MODE overrides for Landing ── */
-:root[data-theme="light"] .lp-badge {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.08);
+/* ── LANDING PAGE THEME TOGGLE BUTTON ── */
+.lp-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--lamp-text-secondary);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-:root[data-theme="light"] .lp-hero-pill {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.08);
-  color: #667085;
+.lp-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--lamp-text);
+  transform: translateY(-1px);
 }
 
-:root[data-theme="light"] .lp-hero-pill:hover {
+.lp-theme-toggle-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  transition: all 0.25s var(--ease-out);
+  flex-shrink: 0;
+}
+
+.lp-theme-toggle-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lamp-glow-primary);
+}
+
+.lp-theme-toggle-label {
+  letter-spacing: 0.02em;
+}
+
+/* Light mode toggle adjustments */
+.lp-root--light .lp-theme-toggle {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #475569;
+}
+
+.lp-root--light .lp-theme-toggle:hover {
   background: rgba(124, 58, 237, 0.06);
-  border-color: rgba(124, 58, 237, 0.2);
+  border-color: rgba(124, 58, 237, 0.25);
   color: #1d2433;
 }
 
+.lp-root--light .lp-theme-toggle-track {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: rgba(124, 58, 237, 0.25);
+}
+
+.lp-root--light .lp-theme-toggle-thumb {
+  color: #7c3aed;
+}
+
+/* ── LANDING PAGE LIGHT MODE ROOT ── */
+.lp-root--light {
+  background: linear-gradient(160deg, #f8f6ff 0%, #f0f4ff 40%, #faf5ff 70%, #f8f9ff 100%);
+}
+
+.lp-root--light body,
+body:has(.lp-root--light) {
+  background: #f8f6ff;
+}
+
+/* Override body ambient background in light mode on landing */
+:root[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(139, 92, 246, 0.08), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(249, 115, 22, 0.04), transparent 50%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(6, 182, 212, 0.03), transparent 50%);
+}
+
+/* ── LIGHT MODE landing page base overrides ── */
+:root[data-theme="light"] .lp-root {
+  background: linear-gradient(160deg, #f8f6ff 0%, #f0f4ff 40%, #faf5ff 70%, #f8f9ff 100%);
+}
+
+:root[data-theme="light"] body {
+  background: #f8f6ff;
+  color: #1d2433;
+}
+
+/* Override all lamp CSS variables for light mode */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --lamp-bg: #f8f6ff;
+  --lamp-surface: #ffffff;
+  --lamp-surface-2: #f3f0fa;
+  --lamp-glass: rgba(255, 255, 255, 0.7);
+  --lamp-glass-hover: rgba(255, 255, 255, 0.85);
+  --lamp-glass-strong: rgba(255, 255, 255, 0.9);
+  --lamp-border: rgba(0, 0, 0, 0.08);
+  --lamp-border-hover: rgba(0, 0, 0, 0.14);
+  --lamp-border-glow: rgba(124, 58, 237, 0.3);
+  --lamp-text: #1d2433;
+  --lamp-text-secondary: #374151;
+  --lamp-muted: #6b7280;
+  --lamp-dim: #9ca3af;
+  --shadow-ambient: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-glow-sm: 0 0 15px -3px rgba(124, 58, 237, 0.15);
+  --shadow-glow-md: 0 0 30px -5px rgba(124, 58, 237, 0.2);
+}
+
+/* ── NAV light mode ── */
+:root[data-theme="light"] .lp-nav-wordmark {
+  color: #1d2433;
+}
+
+:root[data-theme="light"] .lp-nav-login {
+  color: #6b7280;
+}
+
+:root[data-theme="light"] .lp-nav-login span {
+  color: #7c3aed;
+}
+
+/* ── HERO light mode ── */
+:root[data-theme="light"] .lp-badge {
+  background: rgba(124, 58, 237, 0.06);
+  border-color: rgba(124, 58, 237, 0.12);
+  color: #6b7280;
+}
+
+:root[data-theme="light"] .lp-hero-title {
+  color: #1d2433;
+}
+
+:root[data-theme="light"] .lp-hero-gradient {
+  background: linear-gradient(90deg, #1d2433 0%, #7c3aed 60%, #f97316 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+:root[data-theme="light"] .lp-hero-sub {
+  color: #4b5563;
+}
+
+:root[data-theme="light"] .lp-hero-pill {
+  background: rgba(124, 58, 237, 0.06);
+  border-color: rgba(124, 58, 237, 0.12);
+  color: #374151;
+}
+
+:root[data-theme="light"] .lp-hero-pill:hover {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: rgba(124, 58, 237, 0.25);
+  color: #1d2433;
+}
+
+:root[data-theme="light"] .lp-cta-sub {
+  color: #6b7280;
+}
+
+/* ── SECTION light mode ── */
+:root[data-theme="light"] .lp-section-title {
+  color: #1d2433;
+}
+
+:root[data-theme="light"] .lp-section-sub {
+  color: #4b5563;
+}
+
+:root[data-theme="light"] .lp-features-section {
+  background: transparent;
+}
+
+/* ── Feature Cards light mode ── */
 :root[data-theme="light"] .lp-feature-card {
   background: #ffffff;
-  border-color: #e7eaf3;
+  border-color: #e5e9f2;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 :root[data-theme="light"] .lp-feature-card:hover {
   border-color: rgba(124, 58, 237, 0.2);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
+  background: #fdfcff;
 }
 
+:root[data-theme="light"] .lp-feature-title {
+  color: #1d2433;
+}
+
+:root[data-theme="light"] .lp-feature-desc {
+  color: #4b5563;
+}
+
+:root[data-theme="light"] .lp-feature-tag {
+  color: #9ca3af;
+}
+
+/* ── Philosophy section light mode ── */
 :root[data-theme="light"] .lp-philosophy-card {
-  background: rgba(124, 58, 237, 0.04);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.04), rgba(249, 115, 22, 0.02));
   border-color: rgba(124, 58, 237, 0.15);
 }
 
+:root[data-theme="light"] .lp-philosophy-quote {
+  color: #1d2433;
+}
+
+:root[data-theme="light"] .lp-philosophy-body {
+  color: #4b5563;
+}
+
+:root[data-theme="light"] .lp-philosophy-body strong {
+  color: #1d2433;
+}
+
 :root[data-theme="light"] .lp-pillar-chip {
-  background: #f1f3f9;
-  border-color: #e7eaf3;
-  color: #667085;
+  background: rgba(124, 58, 237, 0.05);
+  border-color: rgba(124, 58, 237, 0.12);
+  color: #374151;
 }
 
+/* ── Final CTA light mode ── */
+:root[data-theme="light"] .lp-final-cta-title {
+  color: #1d2433;
+}
+
+:root[data-theme="light"] .lp-final-cta-sub {
+  color: #4b5563;
+}
+
+/* ── Footer light mode ── */
 :root[data-theme="light"] .lp-footer {
-  border-top-color: #e7eaf3;
+  border-top-color: #e5e9f2;
 }
 
-:root[data-theme="light"] .lp-nav-login span {
-  color: #7c3aed;
+:root[data-theme="light"] .lp-footer-brand {
+  color: #1d2433;
+}
+
+:root[data-theme="light"] .lp-footer-copy {
+  color: #6b7280;
+}
+
+:root[data-theme="light"] .lp-footer-version {
+  color: #9ca3af;
 }

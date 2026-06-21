@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Shield,
   ArrowRight,
+  Sun,
+  Moon,
 } from "lucide-react";
 import LampEffect from "./ui/LampEffect";
 
@@ -114,6 +116,26 @@ export default function LandingPage({ onEnter }) {
   const [transitioning, setTransitioning] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Light mode by default for landing page, persisted in localStorage
+  const [lpTheme, setLpTheme] = useState(() => {
+    return localStorage.getItem("sf_lp_theme") || "light";
+  });
+
+  useEffect(() => {
+    // Apply theme to document root
+    document.documentElement.setAttribute("data-theme", lpTheme);
+    return () => {
+      // Restore to dark when leaving landing page (auth/dashboard use their own theme)
+      // This no-op cleanup is intentional — App.jsx re-sets theme from user preference
+    };
+  }, [lpTheme]);
+
+  function toggleTheme() {
+    const next = lpTheme === "light" ? "dark" : "light";
+    setLpTheme(next);
+    localStorage.setItem("sf_lp_theme", next);
+  }
+
   useEffect(() => {
     // Trigger entrance animation
     const t = requestAnimationFrame(() => setMounted(true));
@@ -128,11 +150,29 @@ export default function LandingPage({ onEnter }) {
   }
 
   return (
-    <div className={`lp-root ${mounted ? "lp-mounted" : ""} ${transitioning ? "lp-exiting" : ""}`}>
+    <div className={`lp-root lp-root--${lpTheme} ${mounted ? "lp-mounted" : ""} ${transitioning ? "lp-exiting" : ""}`}>
       <LampEffect />
 
       {/* ── NAV ── */}
       <header className="lp-nav">
+        {/* Theme Toggle — top left */}
+        <button
+          id="lp-theme-toggle"
+          className="lp-theme-toggle"
+          onClick={toggleTheme}
+          aria-label={lpTheme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+          title={lpTheme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+        >
+          <span className="lp-theme-toggle-track">
+            <span className="lp-theme-toggle-thumb">
+              {lpTheme === "light" ? <Sun size={13} /> : <Moon size={13} />}
+            </span>
+          </span>
+          <span className="lp-theme-toggle-label">
+            {lpTheme === "light" ? "Light" : "Dark"}
+          </span>
+        </button>
+
         <div className="lp-nav-brand">
           <div className="brand-mark">
             <Flame size={18} color="#fff" />

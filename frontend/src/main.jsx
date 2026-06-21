@@ -99,7 +99,9 @@ function App() {
 
   // Sync theme to document root
   useEffect(() => {
-    const theme = user?.themePreference || "dark";
+    // If user is logged in, use their server-side preference
+    // Otherwise use the landing-page theme from localStorage (default: light)
+    const theme = user?.themePreference || localStorage.getItem("sf_lp_theme") || "light";
     document.documentElement.setAttribute("data-theme", theme);
   }, [user]);
 

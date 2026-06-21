@@ -1,13 +1,20 @@
 import { Router } from "express";
 import multer from "multer";
 import path from "path";
+import { fileURLToPath } from "url";
 import { protect } from "../middleware/auth.js";
 import { getNotes, createNote, updateNote, deleteNote, uploadFile } from "../controllers/noteController.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Resolve uploads directory relative to this file — not the process CWD
+const uploadsDir = path.join(__dirname, "..", "uploads");
 
 // Configure Multer Storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/");
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
