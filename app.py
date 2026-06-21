@@ -895,7 +895,7 @@ def render_auth_page():
     with right_col:
         with st.container(border=True):
             if st.session_state.auth_view == "login":
-                st.markdown("<h2 style='color:#fff;margin:0;'>Login</h2><p style='color:#a7a0b8;'>Welcome back. Your forge is warm.</p>", unsafe_allow_html=True)
+                st.markdown("<h2 style='color:#fff;margin:0;'>Login</h2><p style='color:#a7a0b8;'>Welcome . Your forge is warm.</p>", unsafe_allow_html=True)
                 with st.form("login_form"):
                     username = st.text_input("Username", placeholder="your username")
                     password = st.text_input("Password", type="password", placeholder="your password")
