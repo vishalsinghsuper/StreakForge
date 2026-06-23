@@ -23,8 +23,8 @@ function createTransporter() {
  * Send email verification link to the user.
  * In dev mode (no SMTP configured), logs the link to console instead.
  */
-export async function sendVerificationEmail(user, rawToken) {
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+export async function sendVerificationEmail(user, rawToken, origin) {
+  const frontendUrl = origin && origin !== 'undefined' ? origin : process.env.FRONTEND_URL || "http://localhost:5173";
   const verifyUrl = `${frontendUrl}/verify-email/${rawToken}`;
 
   const transporter = createTransporter();
@@ -62,8 +62,8 @@ export async function sendVerificationEmail(user, rawToken) {
  * Send password reset link to the user.
  * In dev mode (no SMTP configured), logs the link to console instead.
  */
-export async function sendPasswordResetEmail(user, rawToken) {
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+export async function sendPasswordResetEmail(user, rawToken, origin) {
+  const frontendUrl = origin && origin !== 'undefined' ? origin : process.env.FRONTEND_URL || "http://localhost:5173";
   const resetUrl = `${frontendUrl}/reset-password/${rawToken}`;
 
   const transporter = createTransporter();

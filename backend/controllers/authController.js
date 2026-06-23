@@ -73,7 +73,9 @@ export async function signup(req, res) {
     if (smtpConfigured()) {
       const rawToken = user.generateVerificationToken();
       await user.save({ validateBeforeSave: false });
-      await sendVerificationEmail(user, rawToken);
+      
+      const origin = req.get('origin') || req.get('referer')?.split('/')[0] + '//' + req.get('referer')?.split('/')[2];
+      await sendVerificationEmail(user, rawToken, origin);
     }
 
     const token = signToken(user._id);
@@ -135,7 +137,9 @@ export async function resendVerification(req, res) {
 
     const rawToken = user.generateVerificationToken();
     await user.save({ validateBeforeSave: false });
-    await sendVerificationEmail(user, rawToken);
+    
+    const origin = req.get('origin') || req.get('referer')?.split('/')[0] + '//' + req.get('referer')?.split('/')[2];
+    await sendVerificationEmail(user, rawToken, origin);
 
     res.json({ message: "Verification email sent." });
   } catch (err) {
@@ -188,7 +192,9 @@ export async function forgotPassword(req, res) {
 
     const rawToken = user.generateResetToken();
     await user.save({ validateBeforeSave: false });
-    await sendPasswordResetEmail(user, rawToken);
+    
+    const origin = req.get('origin') || req.get('referer')?.split('/')[0] + '//' + req.get('referer')?.split('/')[2];
+    await sendPasswordResetEmail(user, rawToken, origin);
 
     res.json({ message: "If an account with that email exists, a reset link has been sent." });
   } catch (err) {
