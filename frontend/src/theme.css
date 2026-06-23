@@ -459,15 +459,22 @@ input[type="checkbox"]:checked::after {
   margin-bottom: var(--space-xs);
 }
 
+.auth-panel .auth-heading {
+  font-size: 2.2rem;
+  font-weight: 900;
+  margin-bottom: 0.35rem;
+}
+
 .auth-panel .auth-subtitle {
   color: var(--lamp-muted);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   margin-bottom: var(--space-xl);
+  line-height: 1.5;
 }
 
 .auth-panel form {
   display: grid;
-  gap: var(--space-lg);
+  gap: 0;
 }
 
 .auth-panel .error {
@@ -478,6 +485,7 @@ input[type="checkbox"]:checked::after {
   padding: var(--space-md) var(--space-lg);
   font-size: 0.88rem;
   animation: slide-up var(--duration-fast) var(--ease-out);
+  margin-bottom: var(--space-md);
 }
 
 .auth-panel .info-box {
@@ -488,6 +496,230 @@ input[type="checkbox"]:checked::after {
   padding: var(--space-md) var(--space-lg);
   font-size: 0.88rem;
   line-height: 1.5;
+}
+
+/* --- Logo Row --- */
+.auth-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.6rem;
+}
+
+.auth-logo-box {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, var(--lamp-glow-secondary), var(--lamp-glow-primary));
+  box-shadow: 0 8px 24px rgba(var(--lamp-glow-primary-rgb), 0.35);
+  flex-shrink: 0;
+}
+
+.auth-logo-text {
+  font-family: var(--font-primary);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--lamp-text);
+}
+
+/* --- Input Groups --- */
+.auth-input-group {
+  margin-bottom: 1rem;
+}
+
+.auth-input-group > label {
+  display: block;
+  color: var(--lamp-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.auth-input-group input {
+  width: 100%;
+  height: 50px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--lamp-border);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0 1rem;
+  color: var(--lamp-text);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.auth-input-group input::placeholder {
+  color: var(--lamp-dim);
+}
+
+.auth-input-group input:focus {
+  border-color: rgba(var(--lamp-glow-primary-rgb), 0.6);
+  box-shadow: 0 0 0 3px rgba(var(--lamp-glow-primary-rgb), 0.12), 0 0 18px -4px rgba(var(--lamp-glow-primary-rgb), 0.2);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* --- Label Row (Password + Forgot) --- */
+.auth-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.auth-label-row label {
+  margin-bottom: 0;
+}
+
+.auth-forgot {
+  color: var(--lamp-glow-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.auth-forgot:hover {
+  color: #fb923c;
+}
+
+/* --- Password Input Wrapper --- */
+.auth-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.auth-input-wrapper .auth-password-input {
+  padding-right: 3rem;
+}
+
+.auth-toggle-password {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--lamp-dim);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  z-index: 3;
+}
+
+.auth-toggle-password:hover {
+  color: var(--lamp-glow-primary);
+}
+
+/* --- Back to Sign In link (signup mode) --- */
+.auth-back-link {
+  border: none;
+  background: transparent;
+  color: var(--lamp-glow-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  padding: 0;
+  font-family: var(--font-body);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.2s ease;
+}
+
+.auth-back-link:hover {
+  color: #fb923c;
+}
+
+/* --- Submit Button (matches app theme) --- */
+.auth-submit-btn {
+  width: 100%;
+  height: 54px;
+  border: none;
+  border-radius: var(--radius-lg);
+  margin-top: 0.5rem;
+  background: linear-gradient(135deg, var(--lamp-glow-primary), #a855f7);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  transition: all 0.35s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 8px 28px rgba(var(--lamp-glow-primary-rgb), 0.35);
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(var(--lamp-glow-primary-rgb), 0.5);
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 12px 36px rgba(var(--lamp-glow-primary-rgb), 0.5);
+}
+
+.auth-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Loading spinner for submit button */
+.auth-spinner {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Success Icon (forgot sent) --- */
+.auth-success-icon {
+  font-size: 3rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, var(--lamp-glow-emerald), var(--lamp-glow-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* --- Footer --- */
+.auth-footer {
+  margin-top: 1.25rem;
+  text-align: center;
+  color: var(--lamp-text-secondary);
+  font-size: 0.88rem;
+}
+
+.auth-footer span {
+  color: var(--lamp-glow-secondary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.auth-footer span:hover {
+  color: #fb923c;
 }
 
 /* Brand mark (fire icon box) */

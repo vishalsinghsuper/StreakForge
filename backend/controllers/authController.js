@@ -5,7 +5,7 @@ import UserState from "../models/UserState.js";
 import Habit from "../models/Habit.js";
 import Note from "../models/Note.js";
 import Event from "../models/Event.js";
-import { sendVerificationEmail } from "../utils/email.js";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../utils/email.js";
 
 /** Helper to create and sign a JWT for a user */
 function signToken(userId) {
@@ -170,6 +170,64 @@ export async function verifyEmail(req, res) {
     res.json({ message: "Email verified successfully.", token, user: publicUser(user) });
   } catch (err) {
     console.error("Verify email error:", err);
+    res.status(500).json({ detail: "Server error." });
+  }
+}
+
+// POST /api/auth/forgot-password
+export async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ detail: "Email is required." });
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
+      // Don't reveal whether the email exists — always return success
+      return res.json({ message: "If an account with that email exists, a reset link has been sent." });
+    }
+
+    const rawToken = user.generateResetToken();
+    await user.save({ validateBeforeSave: false });
+    await sendPasswordResetEmail(user, rawToken);
+
+    res.json({ message: "If an account with that email exists, a reset link has been sent." });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ detail: "Server error." });
+  }
+}
+
+// POST /api/auth/reset-password/:token
+export async function resetPassword(req, res) {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      return res.status(400).json({ detail: "Password must be at least 6 characters." });
+    }
+
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(req.params.token)
+      .digest("hex");
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ detail: "Invalid or expired reset token." });
+    }
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    const token = signToken(user._id);
+    res.json({ message: "Password reset successfully.", token, user: publicUser(user) });
+  } catch (err) {
+    console.error("Reset password error:", err);
     res.status(500).json({ detail: "Server error." });
   }
 }

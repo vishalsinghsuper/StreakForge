@@ -10,6 +10,8 @@ import {
   logout,
   resendVerification,
   verifyEmail,
+  forgotPassword,
+  resetPassword,
   updateProfile,
   changePassword,
   updateTheme,
@@ -55,6 +57,8 @@ router.get("/me", protect, me);
 router.post("/logout", protect, logout);
 router.post("/resend-verification", resendVerification);
 router.get("/verify-email/:token", verifyEmail);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 
 // Profile and Settings Management Routes
 router.put("/profile", protect, updateProfile);
