@@ -82,7 +82,7 @@ export async function signup(req, res) {
     res.status(201).json({ token, user: publicUser(user) });
   } catch (err) {
     console.error("Signup error:", err);
-    res.status(500).json({ detail: "Server error during signup." });
+    res.status(500).json({ detail: `Server error during signup: ${err.message}`, error: err.message });
   }
 }
 
@@ -111,7 +111,7 @@ export async function login(req, res) {
     res.json({ token, user: publicUser(user) });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ detail: "Server error during login." });
+    res.status(500).json({ detail: `Server error during login: ${err.message}` });
   }
 }
 
