@@ -205,44 +205,7 @@ export default function Dashboard({ user, api, onUserUpdate, onLogout }) {
     }
   }
 
-  // --- State operations ---
-  async function handleMidnight() {
-    try {
-      const updatedStats = await api.midnight();
-      setStats(updatedStats);
-      const [h, e, ae] = await Promise.all([
-        api.getHabits(),
-        api.getEvents(),
-        api.getArchivedEvents(),
-      ]);
-      setHabits(h);
-      setEvents(e);
-      setArchivedEvents(ae);
-      setError("");
-    } catch (err) {
-      setError(err.message);
-    }
-  }
 
-  async function handleReset() {
-    try {
-      await api.resetForge();
-      setHabits([]);
-      setEvents([]);
-      setArchivedEvents([]);
-      setStats((prev) => ({
-        ...prev,
-        activePillar: "General",
-        statsMaster: { current: 0, prev: 0, best: 0 },
-        statsIron: { current: 0, prev: 0, best: 0 },
-        statsMind: { current: 0, prev: 0, best: 0 },
-        statsGeneral: { current: 0, prev: 0, best: 0 },
-      }));
-      setError("");
-    } catch (err) {
-      setError(err.message);
-    }
-  }
 
   if (!loaded) {
     return <div className="loading">Loading StreakForge...</div>;
@@ -254,8 +217,6 @@ export default function Dashboard({ user, api, onUserUpdate, onLogout }) {
       <div className="app-shell">
         <Sidebar
           stats={stats}
-          onReset={handleReset}
-          onMidnight={handleMidnight}
         />
         <main className="workspace">
           {/* Top Bar */}

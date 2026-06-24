@@ -1,5 +1,5 @@
 import React from "react";
-import { Flame, Moon, RotateCcw, LogOut } from "lucide-react";
+import { Flame } from "lucide-react";
 import GlassCard from "./ui/GlassCard";
 import GlowButton from "./ui/GlowButton";
 
@@ -14,7 +14,7 @@ const PILLARS = {
  * Features: glowing brand mark, gradient streak counter, shadow streaks,
  * midnight/reset buttons, and user avatar with glow.
  */
-export default function Sidebar({ stats, onReset, onMidnight }) {
+export default function Sidebar({ stats }) {
   return (
     <aside className="sidebar">
       {/* Brand */}
@@ -56,15 +56,7 @@ export default function Sidebar({ stats, onReset, onMidnight }) {
         );
       })}
 
-      {/* Actions */}
-      <div className="sidebar-actions">
-        <GlowButton variant="glass" onClick={onMidnight}>
-          <Moon size={16} /> Midnight Reset
-        </GlowButton>
-        <GlowButton variant="danger" onClick={onReset}>
-          <RotateCcw size={16} /> Reset Forge
-        </GlowButton>
-      </div>
+
 
     </aside>
   );
